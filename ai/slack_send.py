@@ -1,43 +1,49 @@
 import os
+import sys
 import requests
-from pathlib import Path
 
-WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+webhook = os.getenv("SLACK_WEBHOOK_URL")
+tf_env = os.getenv("TF_ENV", "unknown")
+repo = os.getenv("GITHUB_REPOSITORY", "local")
+branch = os.getenv("GITHUB_REF_NAME", "local")
+actor = os.getenv("GITHUB_ACTOR", "local")
+run_id = os.getenv("GITHUB_RUN_ID", "")
 
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-REPORT_FILE = PROJECT_DIR / "ai-report.txt"
+if not webhook:
+    print("ERROR: SLACK_WEBHOOK_URL is missing.")
+    sys.exit(1)
 
-if not WEBHOOK_URL:
-    raise SystemExit("ERROR: SLACK_WEBHOOK_URL environment variable is not set.")
+if not os.path.exists("ai-report.txt"):
+    print("ERROR: ai-report.txt not found.")
+    sys.exit(1)
 
-if not REPORT_FILE.exists():
-    raise SystemExit(f"ERROR: Report file not found: {REPORT_FILE}")
+with open("ai-report.txt", "r", errors="ignore") as file:
+    report = file.read()
 
-report = REPORT_FILE.read_text().strip()
+run_url = ""
+if repo != "local" and run_id:
+    run_url = f"https://github.com/{repo}/actions/runs/{run_id}"
 
-if not report:
-    raise SystemExit("ERROR: AI report is empty.")
+message = f"""
+*Terraform AI Review Report*
 
-message = {
-    "text": (
-        "*Terraform AI Reviewer Report*\n"
-        "AI security and configuration review completed.\n\n"
-        f"```{report[:35000]}```"
-    )
+*Environment:* {tf_env}
+*Repository:* {repo}
+*Branch:* {branch}
+*Triggered by:* {actor}
+*Run:* {run_url}
+
+```{report[:3500]}```
+"""
+
+payload = {
+    "text": message
 }
 
-try:
-    response = requests.post(
-        WEBHOOK_URL,
-        json=message,
-        timeout=30
-    )
-    response.raise_for_status()
+response = requests.post(webhook, json=payload)
 
-    if response.text.strip() != "ok":
-        raise SystemExit(f"Slack returned an unexpected response: {response.text}")
+if response.status_code != 200:
+    print(f"Slack notification failed: {response.status_code} {response.text}")
+    sys.exit(1)
 
-    print("SUCCESS: AI report sent to Slack.")
-
-except requests.RequestException as error:
-    raise SystemExit(f"ERROR: Could not send report to Slack: {error}")
+print("Slack notification sent successfully.")

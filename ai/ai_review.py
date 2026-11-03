@@ -1,51 +1,99 @@
-import requests
-from pathlib import Path
+from openai import OpenAI
+import os
+import sys
 
-PLAN_FILE = Path("tfplan.txt")
-REPORT_FILE = Path("ai-report.txt")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+TF_ENV = os.getenv("TF_ENV", "prod")
+GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY", "local")
+GITHUB_REF_NAME = os.getenv("GITHUB_REF_NAME", "local")
+GITHUB_ACTOR = os.getenv("GITHUB_ACTOR", "local")
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL = "llama3.2:3b"
 
-if not PLAN_FILE.exists():
-    raise SystemExit("ERROR: tfplan.txt not found. Generate Terraform plan first.")
+def read_file(path, max_chars=60000):
+    if not os.path.exists(path):
+        return f"{path} not found."
+    with open(path, "r", errors="ignore") as file:
+        return file.read()[:max_chars]
 
-terraform_plan = PLAN_FILE.read_text()
 
-prompt = f"""
-You are an experienced AWS Terraform security reviewer.
+terraform_plan = read_file("tfplan.txt")
+tflint_report = read_file("tflint.txt")
+checkov_report = read_file("checkov.txt")
+infracost_report = read_file("infracost.txt")
 
-Review the following Terraform plan.
-
-Identify:
-1. Security risks
-2. IAM and network concerns
-3. Configuration mistakes
-4. Reliability concerns
-5. Recommendations
-
-Do not invent resources or configuration details.
-If information is missing, clearly say it cannot be verified.
-
-Terraform plan:
-{terraform_plan}
-"""
-
-response = requests.post(
-    OLLAMA_URL,
-    json={
-        "model": MODEL,
-        "prompt": prompt,
-        "stream": False
-    },
-    timeout=300
+client = OpenAI(
+    base_url=OLLAMA_BASE_URL,
+    api_key="ollama"
 )
 
-response.raise_for_status()
+prompt = f"""
+You are a senior Terraform, AWS, DevSecOps, FinOps, and AIOps reviewer.
 
-report = response.json()["response"]
+Review the Terraform plan and tool outputs.
 
-REPORT_FILE.write_text(report)
+Project Context:
+- Environment: {TF_ENV}
+- Repository: {GITHUB_REPOSITORY}
+- Branch: {GITHUB_REF_NAME}
+- Triggered by: {GITHUB_ACTOR}
 
-print("AI Terraform review completed.")
-print(report)
+Return output in this exact format:
+
+Risk Score: Low / Medium / High / Critical
+
+Summary:
+- Explain what infrastructure changes are planned.
+
+Resources:
+- List important resources that will be created, changed, or destroyed.
+
+Security Findings:
+- Finding:
+  Risk:
+  Recommendation:
+
+Cost Findings:
+- Finding:
+  Risk:
+  Recommendation:
+
+Compliance / Best Practice Findings:
+- Finding:
+  Risk:
+  Recommendation:
+
+Production Approval Recommendation:
+Approved / Not Approved
+
+Beginner-Friendly Explanation:
+- Explain this in simple DevOps language for students.
+
+Terraform Plan:
+{terraform_plan}
+
+TFLint Output:
+{tflint_report}
+
+Checkov Output:
+{checkov_report}
+
+Infracost Output:
+{infracost_report}
+"""
+
+response = client.chat.completions.create(
+    model=OLLAMA_MODEL,
+    messages=[
+        {
+            "role": "system",
+            "content": "You are an expert Terraform, AWS, DevSecOps, FinOps, and AIOps reviewer."
+        },
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+)
+
+print(response.choices[0].message.content)

@@ -1,0 +1,12 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+tfplan.txt
+ai-report.txt
+venv/
+.env
+*.pem
+*.key
+__pycache__/

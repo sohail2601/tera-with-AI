@@ -1,4 +1,3 @@
-
 resource "aws_vpc" "main" {
   cidr_block           = "10.10.0.0/16"
   enable_dns_support   = true
@@ -102,4 +101,3 @@ resource "aws_network_interface" "web_eni" {
     Environment = var.environment
   }
 }
-

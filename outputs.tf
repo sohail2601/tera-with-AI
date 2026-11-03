@@ -1,4 +1,3 @@
-
 output "vpc_id" {
   value = aws_vpc.main.id
 }
@@ -14,4 +13,3 @@ output "security_group_id" {
 output "network_interface_id" {
   value = aws_network_interface.web_eni.id
 }
-

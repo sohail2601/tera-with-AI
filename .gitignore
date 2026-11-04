@@ -1,12 +1,47 @@
+# Terraform sensitive variable files
+terraform.tfvars
+*.auto.tfvars
+*.tfvars
+!*.tfvars.example
+
+# Terraform working directory and state
 .terraform/
 *.tfstate
 *.tfstate.*
 *.tfplan
 tfplan
 tfplan.txt
+
+# Terraform generated reports
 ai-report.txt
-venv/
+checkov.txt
+tflint.txt
+infracost.txt
+
+# Secrets and credentials
 .env
+.env.*
+!.env.example
 *.pem
 *.key
+.credentials
+.credentials_rsaparams
+.runner
+.service
+
+# Python
+venv/
+.venv/
 __pycache__/
+*.pyc
+
+# Other generated files
+*.log
+
+# Personal environment configuration
+envs/dev.tfvars
+envs/prod.tfvars
+
+# Personal Terraform backend configuration
+backend-dev.hcl
+backend-prod.hcl

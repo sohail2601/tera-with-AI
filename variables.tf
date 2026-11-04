@@ -1,17 +1,19 @@
 variable "aws_region" {
-  description = "AWS region"
+  description = "AWS region where resources will be created"
   type        = string
-  default     = "ap-south-1"
 }
 
 variable "project_name" {
-  description = "Project name"
+  description = "Project name used for resource naming"
   type        = string
-  default     = "terraform-ai-reviewer"
 }
 
-variable "vpc_cidr" {
-  description = "VPC CIDR block"
+variable "environment" {
+  description = "Environment name such as dev or prod"
   type        = string
-  default     = "10.20.0.0/16"
+}
+
+variable "my_ip" {
+  description = "Allowed CIDR for SSH access"
+  type        = string
 }

@@ -24,13 +24,21 @@ infracost_report = read_file("infracost.txt")
 
 client = OpenAI(
     base_url=OLLAMA_BASE_URL,
-    api_key="ollama"
+    api_key="ollama",
+    timeout=300
 )
 
 prompt = f"""
 You are a senior Terraform, AWS, DevSecOps, FinOps, and AIOps reviewer.
 
 Review the Terraform plan and tool outputs.
+Rules:
+- Keep the report under 180 words.
+- Select exactly ONE risk score: Low, Medium, High, or Critical.
+- Report only findings supported by the supplied plan or scan reports.
+- Never invent security rules, costs, or compliance violations.
+- If Infracost data is unavailable, say cost estimation is unavailable.
+- Production approval must say: Human review required.
 
 Project Context:
 - Environment: {TF_ENV}
@@ -84,6 +92,8 @@ Infracost Output:
 
 response = client.chat.completions.create(
     model=OLLAMA_MODEL,
+    max_tokens=250,
+    temperature=0.1,
     messages=[
         {
             "role": "system",
